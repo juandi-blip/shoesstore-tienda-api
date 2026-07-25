@@ -1,1 +1,5 @@
 .superpowers/
+
+target/
+*.class
+.mvn/wrapper/maven-wrapper.jar
