@@ -1,5 +1,6 @@
 package com.shoesstore.tienda.pedidos.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.shoesstore.tienda.productos.model.Producto;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -14,6 +15,7 @@ public class PedidoItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pedido_id", nullable = false)
+    @JsonIgnore
     private Pedido pedido;
 
     @ManyToOne(fetch = FetchType.EAGER)

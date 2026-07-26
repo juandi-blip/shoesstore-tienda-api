@@ -1,5 +1,6 @@
 package com.shoesstore.tienda.auth.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -16,6 +17,7 @@ public class Usuario {
     private String nombreUsuario;
 
     @Column(name = "contrasena_hash", nullable = false, length = 100)
+    @JsonIgnore
     private String contrasenaHash;
 
     @Column(name = "nombre_completo", length = 120)
