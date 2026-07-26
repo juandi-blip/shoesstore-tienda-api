@@ -1,0 +1,197 @@
+{
+  "info": {
+    "name": "shoesstore-tienda-api",
+    "description": "Auth, catalogo de productos y pedidos de la tienda Shoes'sStore. Requiere shoesstore-inventario-api corriendo en localhost:8080.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8081" },
+    { "key": "token", "value": "" },
+    { "key": "producto_id", "value": "1" },
+    { "key": "pedido_id", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Registro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreUsuario\": \"juan\",\n  \"contrasena\": \"clave123\",\n  \"nombreCompleto\": \"Juan Florez\",\n  \"email\": \"juan@correo.com\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/registro", "host": ["{{base_url}}"], "path": ["api", "auth", "registro"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreUsuario\": \"juan\",\n  \"contrasena\": \"clave123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Perfil",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/auth/perfil", "host": ["{{base_url}}"], "path": ["api", "auth", "perfil"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/auth/logout", "host": ["{{base_url}}"], "path": ["api", "auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Productos",
+      "item": [
+        {
+          "name": "Listar (con filtros)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/productos?genero=hombre&marca=Nike",
+              "host": ["{{base_url}}"],
+              "path": ["api", "productos"],
+              "query": [
+                { "key": "genero", "value": "hombre" },
+                { "key": "marca", "value": "Nike" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detalle (con disponibilidad)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/productos/{{producto_id}}", "host": ["{{base_url}}"], "path": ["api", "productos", "{{producto_id}}"] }
+          }
+        },
+        {
+          "name": "Crear",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Air Force 1 07\",\n  \"marca\": \"Nike\",\n  \"precio\": 115,\n  \"genero\": \"hombre\",\n  \"proposito\": \"lifestyle\",\n  \"subcategoria\": \"originals\",\n  \"colorway\": \"White/White\",\n  \"novedad\": false,\n  \"outlet\": false,\n  \"imagen\": \"https://static.sneakerjagers.com/products/660x660/185674.jpg\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/productos", "host": ["{{base_url}}"], "path": ["api", "productos"] }
+          }
+        },
+        {
+          "name": "Actualizar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Air Force 1 07\",\n  \"marca\": \"Nike\",\n  \"precio\": 120,\n  \"genero\": \"hombre\",\n  \"proposito\": \"lifestyle\",\n  \"subcategoria\": \"originals\",\n  \"colorway\": \"White/White\",\n  \"novedad\": false,\n  \"outlet\": true,\n  \"imagen\": \"https://static.sneakerjagers.com/products/660x660/185674.jpg\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/productos/{{producto_id}}", "host": ["{{base_url}}"], "path": ["api", "productos", "{{producto_id}}"] }
+          }
+        },
+        {
+          "name": "Eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/productos/{{producto_id}}", "host": ["{{base_url}}"], "path": ["api", "productos", "{{producto_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pedidos",
+      "item": [
+        {
+          "name": "Crear pedido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('pedido_id', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metodoPago\": \"contraentrega\",\n  \"envioCop\": 5000,\n  \"items\": [\n    { \"productoId\": {{producto_id}}, \"talla\": 9.0, \"cantidad\": 1 }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/pedidos", "host": ["{{base_url}}"], "path": ["api", "pedidos"] }
+          }
+        },
+        {
+          "name": "Listar mis pedidos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/pedidos", "host": ["{{base_url}}"], "path": ["api", "pedidos"] }
+          }
+        },
+        {
+          "name": "Detalle de pedido",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/pedidos/{{pedido_id}}", "host": ["{{base_url}}"], "path": ["api", "pedidos", "{{pedido_id}}"] }
+          }
+        }
+      ]
+    }
+  ]
+}
