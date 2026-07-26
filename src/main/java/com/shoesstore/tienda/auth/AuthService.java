@@ -60,6 +60,11 @@ public class AuthService {
                 .map(Sesion::getUsuario);
     }
 
+    public Usuario obtenerUsuarioPorId(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new NoAutorizadoException("Sesion invalida."));
+    }
+
     public void logout(String token) {
         sesionRepository.deleteById(token);
     }

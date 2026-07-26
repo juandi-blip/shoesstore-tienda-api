@@ -36,8 +36,7 @@ public class AuthController {
     @GetMapping("/perfil")
     public ResponseEntity<PerfilDTO> perfil(HttpServletRequest request) {
         Long usuarioId = (Long) request.getAttribute("usuarioId");
-        Usuario usuario = authService.obtenerUsuarioPorToken(extraerToken(request))
-                .orElseThrow(() -> new NoAutorizadoException("Sesion invalida."));
+        Usuario usuario = authService.obtenerUsuarioPorId(usuarioId);
         return ResponseEntity.ok(new PerfilDTO(usuario.getNombreUsuario(), usuario.getNombreCompleto(),
                 usuario.getEmail(), usuario.getFechaRegistro()));
     }
