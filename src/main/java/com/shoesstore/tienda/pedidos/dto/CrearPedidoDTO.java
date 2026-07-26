@@ -1,5 +1,7 @@
 package com.shoesstore.tienda.pedidos.dto;
 
+import jakarta.validation.constraints.NotEmpty;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -7,6 +9,8 @@ public class CrearPedidoDTO {
     private String metodoPago;
     private String banco;
     private BigDecimal envioCop = BigDecimal.ZERO;
+
+    @NotEmpty(message = "El pedido debe tener al menos un producto.")
     private List<ItemPedidoDTO> items;
 
     public String getMetodoPago() { return metodoPago; }

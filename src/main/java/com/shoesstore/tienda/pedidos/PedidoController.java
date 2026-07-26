@@ -3,6 +3,7 @@ package com.shoesstore.tienda.pedidos;
 import com.shoesstore.tienda.pedidos.dto.CrearPedidoDTO;
 import com.shoesstore.tienda.pedidos.model.Pedido;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +21,7 @@ public class PedidoController {
     }
 
     @PostMapping
-    public ResponseEntity<Pedido> crear(HttpServletRequest request, @RequestBody CrearPedidoDTO dto) {
+    public ResponseEntity<Pedido> crear(HttpServletRequest request, @Valid @RequestBody CrearPedidoDTO dto) {
         Long usuarioId = (Long) request.getAttribute("usuarioId");
         return ResponseEntity.status(HttpStatus.CREATED).body(pedidoService.crearPedido(usuarioId, dto));
     }
@@ -32,7 +33,8 @@ public class PedidoController {
     }
 
     @GetMapping("/{id}")
-    public Pedido obtener(@PathVariable Long id) {
-        return pedidoService.obtenerPedido(id);
+    public Pedido obtener(HttpServletRequest request, @PathVariable Long id) {
+        Long usuarioId = (Long) request.getAttribute("usuarioId");
+        return pedidoService.obtenerPedido(usuarioId, id);
     }
 }

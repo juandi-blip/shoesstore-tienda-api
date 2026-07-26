@@ -1,6 +1,7 @@
 package com.shoesstore.tienda.pedidos;
 
 import com.shoesstore.tienda.auth.model.Usuario;
+import com.shoesstore.tienda.common.NoAutorizadoException;
 import com.shoesstore.tienda.common.StockInsuficienteException;
 import com.shoesstore.tienda.pedidos.dto.CrearPedidoDTO;
 import com.shoesstore.tienda.pedidos.dto.ItemPedidoDTO;
@@ -42,6 +43,9 @@ public class PedidoService {
                         .orElseThrow(() -> new NoSuchElementException("Producto/talla no encontrado.")))
                 .toList();
 
+        // Captura el stock validado de cada linea para reutilizarlo en el
+        // descuento (evita una segunda consulta redundante/racy).
+        List<Integer> stocksValidados = new java.util.ArrayList<>(variantes.size());
         for (int i = 0; i < variantes.size(); i++) {
             ProductoTalla variante = variantes.get(i);
             int cantidadPedida = dto.getItems().get(i).getCantidad();
@@ -50,20 +54,27 @@ public class PedidoService {
                 throw new StockInsuficienteException(
                         "Stock insuficiente para la talla " + dto.getItems().get(i).getTalla() + ".");
             }
+            stocksValidados.add(stockActual);
         }
 
-        // 2) Todas las lineas tienen stock: ahora si se descuenta, una por una.
+        // 2) Todas las lineas tienen stock: ahora si se descuenta, una por una,
+        //    reutilizando el stock ya validado en el paso anterior.
         for (int i = 0; i < variantes.size(); i++) {
             ProductoTalla variante = variantes.get(i);
             int cantidadPedida = dto.getItems().get(i).getCantidad();
-            int stockActual = inventarioClient.consultarStock(variante.getIdProductoInventario());
+            int stockActual = stocksValidados.get(i);
             inventarioClient.descontarStock(variante.getIdProductoInventario(), stockActual - cantidadPedida);
         }
 
-        // 3) Calcula el total y persiste el pedido con sus lineas.
-        BigDecimal totalProductos = dto.getItems().stream()
-                .map(item -> item.getPrecioUnitario().multiply(BigDecimal.valueOf(item.getCantidad())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // 3) Calcula el total y persiste el pedido con sus lineas. El precio
+        //    SIEMPRE se deriva del producto en servidor, nunca del DTO del
+        //    cliente (evita manipulacion de precio).
+        BigDecimal totalProductos = BigDecimal.ZERO;
+        for (int i = 0; i < variantes.size(); i++) {
+            BigDecimal precioReal = variantes.get(i).getProducto().getPrecio();
+            int cantidadPedida = dto.getItems().get(i).getCantidad();
+            totalProductos = totalProductos.add(precioReal.multiply(BigDecimal.valueOf(cantidadPedida)));
+        }
 
         Pedido pedido = new Pedido();
         Usuario usuario = new Usuario();
@@ -76,7 +87,8 @@ public class PedidoService {
         pedido.setTotalCop(totalProductos.add(dto.getEnvioCop()));
         pedido = pedidoRepository.save(pedido);
 
-        for (ItemPedidoDTO itemDTO : dto.getItems()) {
+        for (int i = 0; i < variantes.size(); i++) {
+            ItemPedidoDTO itemDTO = dto.getItems().get(i);
             PedidoItem item = new PedidoItem();
             item.setPedido(pedido);
             var producto = new com.shoesstore.tienda.productos.model.Producto();
@@ -84,7 +96,7 @@ public class PedidoService {
             item.setProducto(producto);
             item.setTalla(itemDTO.getTalla());
             item.setCantidad(itemDTO.getCantidad());
-            item.setPrecioUnitario(itemDTO.getPrecioUnitario());
+            item.setPrecioUnitario(variantes.get(i).getProducto().getPrecio());
             pedidoItemRepository.save(item);
         }
 
@@ -95,7 +107,12 @@ public class PedidoService {
         return pedidoRepository.findByUsuarioId(usuarioId);
     }
 
-    public Pedido obtenerPedido(Long id) {
-        return pedidoRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Pedido no encontrado."));
+    public Pedido obtenerPedido(Long usuarioId, Long id) {
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Pedido no encontrado."));
+        if (!pedido.getUsuario().getId().equals(usuarioId)) {
+            throw new NoAutorizadoException("No tienes acceso a este pedido.");
+        }
+        return pedido;
     }
 }
