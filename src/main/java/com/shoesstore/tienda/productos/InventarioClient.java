@@ -33,6 +33,9 @@ public class InventarioClient {
                 .uri("/api/productos/{id}", idProductoInventario)
                 .retrieve()
                 .body(Map.class);
+        if (producto == null) {
+            throw new java.util.NoSuchElementException("Producto de inventario no encontrado: " + idProductoInventario);
+        }
         // Se envia el objeto completo de vuelta con el stock actualizado, porque
         // el PUT de shoesstore-inventario-api espera el recurso entero (ver su
         // ProductoController: no tiene un endpoint parcial de solo-stock).

@@ -6,6 +6,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.NoSuchElementException;
+
 // Manejador global de errores: validaciones de campos, credenciales invalidas, stock insuficiente.
 @RestControllerAdvice
 public class ManejadorErrores {
@@ -14,6 +16,11 @@ public class ManejadorErrores {
     public ResponseEntity<RespuestaDTO> manejarValidacion(MethodArgumentNotValidException ex) {
         String mensaje = ex.getBindingResult().getFieldError().getDefaultMessage();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new RespuestaDTO(mensaje));
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<RespuestaDTO> manejarNoEncontrado(NoSuchElementException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new RespuestaDTO(ex.getMessage()));
     }
 
     @ExceptionHandler(NoAutorizadoException.class)

@@ -53,7 +53,10 @@ public class ProductoService {
         return new TallaDisponibleDTO(productoTalla.getTalla(), stock > 0);
     }
 
-    public Producto crear(Producto producto) { return productoRepository.save(producto); }
+    public Producto crear(Producto producto) {
+        producto.setId(null);
+        return productoRepository.save(producto);
+    }
 
     public Producto actualizar(Long id, Producto datos) {
         Producto existente = productoRepository.findById(id)
