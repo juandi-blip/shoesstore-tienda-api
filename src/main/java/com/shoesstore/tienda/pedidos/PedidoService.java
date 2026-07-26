@@ -13,9 +13,12 @@ import com.shoesstore.tienda.productos.InventarioClient;
 import com.shoesstore.tienda.productos.model.ProductoTalla;
 import com.shoesstore.tienda.productos.repository.ProductoTallaRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -35,44 +38,49 @@ public class PedidoService {
         this.inventarioClient = inventarioClient;
     }
 
+    @Transactional
     public Pedido crearPedido(Long usuarioId, CrearPedidoDTO dto) {
-        // 1) Resuelve la variante de inventario de cada linea y valida TODO el stock
-        //    antes de descontar nada (ver spec: "valida-todo-antes-de-descontar-nada").
-        List<ProductoTalla> variantes = dto.getItems().stream()
+        List<ItemPedidoDTO> itemsDto = dto.getItems();
+
+        // 1) Resuelve la variante de inventario de cada linea.
+        List<ProductoTalla> variantes = itemsDto.stream()
                 .map(item -> productoTallaRepository.findByProductoIdAndTalla(item.getProductoId(), item.getTalla())
                         .orElseThrow(() -> new NoSuchElementException("Producto/talla no encontrado.")))
                 .toList();
 
-        // Captura el stock validado de cada linea para reutilizarlo en el
-        // descuento (evita una segunda consulta redundante/racy).
-        List<Integer> stocksValidados = new java.util.ArrayList<>(variantes.size());
+        // 2) Agrega la cantidad pedida por variante de inventario distinta
+        //    (idProductoInventario), porque el cliente puede repetir la misma
+        //    talla en varias lineas del mismo pedido: hay que validar y descontar
+        //    UNA sola vez por variante, contra la demanda TOTAL de esa variante,
+        //    no una vez por linea contra el mismo snapshot de stock (eso permitiria
+        //    sobrevender: dos lineas de 3 unidades cada una contra un stock de 5
+        //    pasarian ambas validaciones individuales pero suman 6 > 5).
+        Map<Long, Integer> demandaPorVariante = new LinkedHashMap<>();
         for (int i = 0; i < variantes.size(); i++) {
-            ProductoTalla variante = variantes.get(i);
-            int cantidadPedida = dto.getItems().get(i).getCantidad();
-            int stockActual = inventarioClient.consultarStock(variante.getIdProductoInventario());
-            if (stockActual < cantidadPedida) {
+            Long idInventario = variantes.get(i).getIdProductoInventario();
+            int cantidadPedida = itemsDto.get(i).getCantidad();
+            demandaPorVariante.merge(idInventario, cantidadPedida, Integer::sum);
+        }
+
+        // 3) Valida TODO el stock (una consulta por variante distinta) antes de
+        //    persistir o descontar nada (ver spec: "valida-todo-antes-de-descontar-nada").
+        Map<Long, Integer> stockPorVariante = new LinkedHashMap<>();
+        for (Map.Entry<Long, Integer> entrada : demandaPorVariante.entrySet()) {
+            int stockActual = inventarioClient.consultarStock(entrada.getKey());
+            if (stockActual < entrada.getValue()) {
                 throw new StockInsuficienteException(
-                        "Stock insuficiente para la talla " + dto.getItems().get(i).getTalla() + ".");
+                        "Stock insuficiente para uno o mas productos del pedido.");
             }
-            stocksValidados.add(stockActual);
+            stockPorVariante.put(entrada.getKey(), stockActual);
         }
 
-        // 2) Todas las lineas tienen stock: ahora si se descuenta, una por una,
-        //    reutilizando el stock ya validado en el paso anterior.
-        for (int i = 0; i < variantes.size(); i++) {
-            ProductoTalla variante = variantes.get(i);
-            int cantidadPedida = dto.getItems().get(i).getCantidad();
-            int stockActual = stocksValidados.get(i);
-            inventarioClient.descontarStock(variante.getIdProductoInventario(), stockActual - cantidadPedida);
-        }
-
-        // 3) Calcula el total y persiste el pedido con sus lineas. El precio
+        // 4) Calcula el total y persiste el pedido con sus lineas. El precio
         //    SIEMPRE se deriva del producto en servidor, nunca del DTO del
         //    cliente (evita manipulacion de precio).
         BigDecimal totalProductos = BigDecimal.ZERO;
         for (int i = 0; i < variantes.size(); i++) {
             BigDecimal precioReal = variantes.get(i).getProducto().getPrecio();
-            int cantidadPedida = dto.getItems().get(i).getCantidad();
+            int cantidadPedida = itemsDto.get(i).getCantidad();
             totalProductos = totalProductos.add(precioReal.multiply(BigDecimal.valueOf(cantidadPedida)));
         }
 
@@ -88,7 +96,7 @@ public class PedidoService {
         pedido = pedidoRepository.save(pedido);
 
         for (int i = 0; i < variantes.size(); i++) {
-            ItemPedidoDTO itemDTO = dto.getItems().get(i);
+            ItemPedidoDTO itemDTO = itemsDto.get(i);
             PedidoItem item = new PedidoItem();
             item.setPedido(pedido);
             var producto = new com.shoesstore.tienda.productos.model.Producto();
@@ -98,6 +106,16 @@ public class PedidoService {
             item.setCantidad(itemDTO.getCantidad());
             item.setPrecioUnitario(variantes.get(i).getProducto().getPrecio());
             pedidoItemRepository.save(item);
+        }
+
+        // 5) Solo despues de que el pedido y sus lineas se persistieron con exito
+        //    se descuenta el stock real en shoesstore-inventario-api, una vez por
+        //    variante distinta (nunca antes: una falla de persistencia despues de
+        //    descontar quemaria stock sin crear ningun pedido).
+        for (Map.Entry<Long, Integer> entrada : demandaPorVariante.entrySet()) {
+            Long idInventario = entrada.getKey();
+            int nuevoStock = stockPorVariante.get(idInventario) - entrada.getValue();
+            inventarioClient.descontarStock(idInventario, nuevoStock);
         }
 
         return pedido;

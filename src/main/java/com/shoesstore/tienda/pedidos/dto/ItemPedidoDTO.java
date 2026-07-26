@@ -1,13 +1,18 @@
 package com.shoesstore.tienda.pedidos.dto;
 
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 
 public class ItemPedidoDTO {
+    @NotNull(message = "El producto es obligatorio.")
     private Long productoId;
+
+    @NotNull(message = "La talla es obligatoria.")
     private Double talla;
 
+    @NotNull(message = "La cantidad es obligatoria.")
     @Min(value = 1, message = "La cantidad debe ser al menos 1.")
     private Integer cantidad;
     private BigDecimal precioUnitario;

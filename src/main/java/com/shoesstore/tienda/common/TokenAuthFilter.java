@@ -59,6 +59,11 @@ public class TokenAuthFilter extends OncePerRequestFilter {
     }
 
     private void responderNoAutorizado(HttpServletResponse response, String mensaje) throws IOException {
+        // TokenAuthFilter escribe la respuesta directamente y nunca llega al
+        // CorsRegistry de WebConfig (eso solo aplica a peticiones que alcanzan
+        // un @Controller), asi que hay que fijar el header CORS a mano o el
+        // frontend React ve un error CORS opaco en vez de un 401 legible.
+        response.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.getWriter().write("{\"mensaje\":\"" + mensaje + "\"}");

@@ -37,4 +37,9 @@ public class ManejadorErrores {
     public ResponseEntity<RespuestaDTO> manejarStockInsuficiente(StockInsuficienteException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new RespuestaDTO(ex.getMessage()));
     }
+
+    @ExceptionHandler(InventarioNoDisponibleException.class)
+    public ResponseEntity<RespuestaDTO> manejarInventarioNoDisponible(InventarioNoDisponibleException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(new RespuestaDTO(ex.getMessage()));
+    }
 }
