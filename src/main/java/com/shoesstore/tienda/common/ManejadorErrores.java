@@ -32,4 +32,9 @@ public class ManejadorErrores {
     public ResponseEntity<RespuestaDTO> manejarConflicto(IllegalStateException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new RespuestaDTO(ex.getMessage()));
     }
+
+    @ExceptionHandler(StockInsuficienteException.class)
+    public ResponseEntity<RespuestaDTO> manejarStockInsuficiente(StockInsuficienteException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new RespuestaDTO(ex.getMessage()));
+    }
 }
