@@ -1,5 +1,6 @@
 package com.shoesstore.tienda.productos;
 
+import com.shoesstore.tienda.imagenes.ImagenController;
 import com.shoesstore.tienda.productos.dto.ProductoDetalleDTO;
 import com.shoesstore.tienda.productos.dto.ProductoResumenDTO;
 import com.shoesstore.tienda.productos.dto.TallaDisponibleDTO;
@@ -59,7 +60,7 @@ public class ProductoService {
     // Nunca se expone el valor almacenado en Producto.imagen (URL de un CDN de
     // terceros, con derechos de autor): siempre se sirve la imagen propia.
     private String rutaImagen(Long id) {
-        return "/api/imagenes/producto/" + id;
+        return ImagenController.RUTA_BASE + "/producto/" + id;
     }
 
     private TallaDisponibleDTO resolverDisponibilidad(ProductoTalla productoTalla) {

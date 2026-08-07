@@ -9,8 +9,10 @@ import java.util.NoSuchElementException;
 // Endpoint publico (sin auth, ver TokenAuthFilter): genera la imagen de un
 // producto en el momento, sin almacenar ni referenciar nada de terceros.
 @RestController
-@RequestMapping("/api/imagenes")
+@RequestMapping(ImagenController.RUTA_BASE)
 public class ImagenController {
+
+    public static final String RUTA_BASE = "/api/imagenes";
 
     private final ProductoRepository productoRepository;
     private final ImagenService imagenService;
