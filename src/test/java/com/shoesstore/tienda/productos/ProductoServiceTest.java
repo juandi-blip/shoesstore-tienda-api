@@ -1,6 +1,7 @@
 package com.shoesstore.tienda.productos;
 
 import com.shoesstore.tienda.productos.dto.ProductoDetalleDTO;
+import com.shoesstore.tienda.productos.dto.ProductoResumenDTO;
 import com.shoesstore.tienda.productos.model.Producto;
 import com.shoesstore.tienda.productos.model.ProductoTalla;
 import com.shoesstore.tienda.productos.repository.ProductoRepository;
@@ -49,5 +50,37 @@ class ProductoServiceTest {
 
         assertFalse(detalle.getTallas().get(0).isDisponible());
         assertTrue(detalle.getTallas().get(1).isDisponible());
+    }
+
+    @Test
+    void detalleExponeRutaDeImagenPropiaEnVezDeLaUrlAlmacenada() {
+        ProductoService service = new ProductoService(productoRepository, productoTallaRepository, inventarioClient);
+
+        Producto producto = new Producto();
+        producto.setId(7L);
+        producto.setImagen("https://static.sneakerjagers.com/products/660x660/999999.jpg");
+
+        when(productoRepository.findById(7L)).thenReturn(Optional.of(producto));
+        when(productoTallaRepository.findByProductoId(7L)).thenReturn(List.of());
+
+        ProductoDetalleDTO detalle = service.obtenerDetalle(7L);
+
+        assertEquals("/api/imagenes/producto/7", detalle.getImagen());
+    }
+
+    @Test
+    void listarExponeRutaDeImagenPropiaParaCadaProducto() {
+        ProductoService service = new ProductoService(productoRepository, productoTallaRepository, inventarioClient);
+
+        Producto producto = new Producto();
+        producto.setId(3L);
+        producto.setImagen("https://static.sneakerjagers.com/products/660x660/111111.jpg");
+
+        when(productoRepository.findAll()).thenReturn(List.of(producto));
+
+        List<ProductoResumenDTO> lista = service.listar(null, null, null);
+
+        assertEquals(1, lista.size());
+        assertEquals("/api/imagenes/producto/3", lista.get(0).getImagen());
     }
 }

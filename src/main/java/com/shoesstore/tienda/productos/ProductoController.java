@@ -1,6 +1,7 @@
 package com.shoesstore.tienda.productos;
 
 import com.shoesstore.tienda.productos.dto.ProductoDetalleDTO;
+import com.shoesstore.tienda.productos.dto.ProductoResumenDTO;
 import com.shoesstore.tienda.productos.model.Producto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,9 +20,9 @@ public class ProductoController {
     }
 
     @GetMapping
-    public List<Producto> listar(@RequestParam(required = false) String genero,
-                                  @RequestParam(required = false) String marca,
-                                  @RequestParam(required = false) String proposito) {
+    public List<ProductoResumenDTO> listar(@RequestParam(required = false) String genero,
+                                            @RequestParam(required = false) String marca,
+                                            @RequestParam(required = false) String proposito) {
         return productoService.listar(genero, marca, proposito);
     }
 
