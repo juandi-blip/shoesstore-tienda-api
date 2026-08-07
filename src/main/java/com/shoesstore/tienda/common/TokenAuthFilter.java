@@ -55,7 +55,8 @@ public class TokenAuthFilter extends OncePerRequestFilter {
         String metodo = request.getMethod();
         if ("OPTIONS".equals(metodo)) return true;
         if (path.equals("/api/auth/registro") || path.equals("/api/auth/login")) return true;
-        return "GET".equals(metodo) && path.startsWith("/api/productos");
+        if (!"GET".equals(metodo)) return false;
+        return path.startsWith("/api/productos") || path.startsWith("/api/imagenes");
     }
 
     private void responderNoAutorizado(HttpServletResponse response, String mensaje) throws IOException {
